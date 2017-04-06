@@ -63,7 +63,6 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
         self.assertEqual(resp.status_code, 404)
 
         data = json.loads(resp.data)
-        self.assertEqual(len(data), 7)
         self.assertListEqual(
             data[0],
             [
@@ -88,7 +87,6 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
         self.assertEqual(resp.status_code, 404)
 
         data = json.loads(resp.data)
-        self.assertEqual(len(data), 8)
         self.assertListEqual(
             data[0],
             [
