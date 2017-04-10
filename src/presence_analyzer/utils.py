@@ -4,13 +4,14 @@ Helper functions used in views.
 """
 
 import csv
-from json import dumps
-from functools import wraps
+
 from datetime import datetime
+from functools import wraps
+from json import dumps
 
 from flask import Response
 
-from presence_analyzer.main import app
+from main import app
 
 import logging
 log = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -92,7 +93,7 @@ def seconds_since_midnight(time):
 
 def interval(start, end):
     """
-    Calculates inverval in seconds between two datetime.time objects.
+    Calculates interval in seconds between two datetime.time objects.
     """
     return seconds_since_midnight(end) - seconds_since_midnight(start)
 
@@ -102,3 +103,17 @@ def mean(items):
     Calculates arithmetic mean. Returns zero for empty lists.
     """
     return float(sum(items)) / len(items) if len(items) > 0 else 0
+
+
+def work_hours(items):
+    """
+    Returns tuple of start and end hours.
+    """
+    start_hours = [[], [], [], [], [], [], []]
+    end_hours = [[], [], [], [], [], [], []]
+    for date in items:
+        start = items[date]['start']
+        end = items[date]['end']
+        start_hours[date.weekday()].append(seconds_since_midnight(start))
+        end_hours[date.weekday()].append(seconds_since_midnight(end))
+    return (start_hours, end_hours)
