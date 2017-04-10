@@ -4,13 +4,14 @@ Helper functions used in views.
 """
 
 import csv
+import math
 from json import dumps
 from functools import wraps
 from datetime import datetime
 
 from flask import Response
 
-from presence_analyzer.main import app
+from main import app
 
 import logging
 log = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -71,15 +72,27 @@ def get_data():
     return data
 
 
-def group_by_weekday(items):
+def group_by_weekday(items, *args, **kwargs):
     """
     Groups presence entries by weekday.
     """
+    if 'start' in kwargs and kwargs['start'] and \
+            'end' in kwargs and kwargs['end']:
+        raise KeyError('Conflicting arguments in kwargs!')
+
     result = [[], [], [], [], [], [], []]  # one list for every day in week
     for date in items:
         start = items[date]['start']
         end = items[date]['end']
-        result[date.weekday()].append(interval(start, end))
+        if 'seconds' in kwargs:
+            if 'start' in kwargs:
+                result[date.weekday()].append(seconds_since_midnight(start))
+            elif 'end' in kwargs:
+                result[date.weekday()].append(seconds_since_midnight(end))
+            else:
+                raise KeyError('Didn\'t receive \'start\' or \'end\' param.')
+        else:
+            result[date.weekday()].append(interval(start, end))
     return result
 
 
@@ -92,7 +105,7 @@ def seconds_since_midnight(time):
 
 def interval(start, end):
     """
-    Calculates inverval in seconds between two datetime.time objects.
+    Calculates interval in seconds between two datetime.time objects.
     """
     return seconds_since_midnight(end) - seconds_since_midnight(start)
 
@@ -102,3 +115,26 @@ def mean(items):
     Calculates arithmetic mean. Returns zero for empty lists.
     """
     return float(sum(items)) / len(items) if len(items) > 0 else 0
+
+
+def average_hour(items):
+    """
+    Calculates average hour and returns date string for JS Date object.
+    """
+    avg_time = round(mean(items))
+    avg_m = avg_time / 60
+    avg_h = avg_m / 60
+
+    avg_sec = int(math.floor(avg_time % 60))
+    if avg_sec < 10:
+        avg_sec = '0' + str(avg_sec)
+
+    avg_min = int(math.floor(avg_m % 60))
+    if avg_min < 10:
+        avg_min = '0' + str(avg_min)
+
+    avg_hour = int(math.floor(avg_h % 24))
+    if avg_hour < 10:
+        avg_hour = '0' + str(avg_hour)
+
+    return "January 1, 2013 {}:{}:{}".format(avg_hour, avg_min, avg_sec)
