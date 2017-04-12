@@ -4,7 +4,8 @@ Defines views.
 """
 from calendar import day_abbr
 from collections import OrderedDict
-from flask import redirect, abort
+
+from flask import abort, redirect
 
 from main import app
 from utils import (
@@ -92,9 +93,7 @@ def presence_start_end_view(user_id):
         log.debug('User %s not found!', user_id)
         abort(404)
 
-    output = work_hours(data[user_id])
-    start_times = output[0]
-    end_times = output[1]
+    start_times, end_times = work_hours(data[user_id])
 
     work_days = OrderedDict()
     for i in xrange(7):  # 7 days a week

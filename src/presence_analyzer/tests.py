@@ -22,6 +22,7 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
     """
     Views tests.
     """
+
     def setUp(self):
         """
         Before each test, set up a environment.
@@ -114,17 +115,37 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
 
         data = json.loads(resp.data)
-        self.assertListEqual(
+        self.assertDictEqual(
             data,
-            [
-                ['Mon'],
-                ['Tue', 'January 1, 09:39:05', 'January 1, 17:59:52'],
-                ['Wed', 'January 1, 09:19:52', 'January 1, 16:07:37'],
-                ['Thu', 'January 1, 10:48:46', 'January 1, 17:23:51'],
-                ['Fri'],
-                ['Sat'],
-                ['Sun']
-            ]
+            {
+                'Wed': {
+                    'end_work': 58057,
+                    'start_work': 33592
+                },
+                'Sun': {
+                    'end_work': 0,
+                    'start_work': 0
+                },
+                'Fri': {
+                    'end_work': 0,
+                    'start_work': 0
+                },
+                'Tue': {
+                    'end_work': 64792,
+                    'start_work': 34745
+                },
+                'Mon': {
+                    'end_work': 0,
+                    'start_work': 0
+                },
+                'Thu': {
+                    'end_work': 62631,
+                    'start_work': 38926
+                },
+                'Sat': {
+                    'end_work': 0,
+                    'start_work': 0}
+            }
         )
 
 
@@ -167,11 +188,6 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         data = utils.get_data()
         weekdays = utils.group_by_weekday(data[10])
         self.assertEqual(weekdays[1][0], 30047)
-        weekday_s = utils.group_by_weekday(data[10], seconds=True, start=True)
-        self.assertEqual(weekday_s[1][0], 34745)
-        weekday_e = utils.group_by_weekday(data[10], seconds=True, end=True)
-        self.assertEqual(weekday_e[1][0], 64792)
-        self.assertGreater(weekday_e, weekday_s)
 
     def test_seconds_since_midnight(self):
         """
@@ -207,6 +223,21 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         self.assertAlmostEqual(utils.mean(weekdays[1]), 30047)
         self.assertEqual(utils.mean([]), 0)
         self.assertEqual(utils.mean([0]), 0)
+
+    def test_work_hours(self):
+        """
+        Test calculate starts and ends hours of given user.
+        """
+        data = utils.get_data()
+        start_hours, end_hours = utils.work_hours(data[10])
+        self.assertListEqual(
+            start_hours,
+            [[], [34745], [33592], [38926], [], [], []]
+        )
+        self.assertListEqual(
+            end_hours,
+            [[], [64792], [58057], [62631], [], [], []]
+        )
 
 
 def suite():

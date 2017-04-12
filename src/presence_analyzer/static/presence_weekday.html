@@ -36,10 +36,10 @@
                         $chartDiv.hide();
                         $.getJSON("/api/v1/presence_weekday/" + selectedUser, function(result) {
                             var data = google.visualization.arrayToDataTable(result),
+                                chart = new google.visualization.PieChart($chartDiv[0]),
                                 options = {};
                             $chartDiv.show();
                             loading.hide();
-                            var chart = new google.visualization.PieChart($chartDiv[0]);
                             chart.draw(data, options);
                         });
                     }

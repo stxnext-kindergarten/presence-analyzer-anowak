@@ -4,7 +4,6 @@ Helper functions used in views.
 """
 
 import csv
-
 from datetime import datetime
 from functools import wraps
 from json import dumps
@@ -76,7 +75,7 @@ def group_by_weekday(items):
     """
     Groups presence entries by weekday.
     """
-    result = [[], [], [], [], [], [], []]  # one list for every day in week
+    result = [[] for i in xrange(7)]  # one list for every day in week
     for date in items:
         start = items[date]['start']
         end = items[date]['end']
@@ -109,8 +108,8 @@ def work_hours(items):
     """
     Returns tuple of start and end hours.
     """
-    start_hours = [[], [], [], [], [], [], []]
-    end_hours = [[], [], [], [], [], [], []]
+    start_hours = [[] for i in xrange(7)]
+    end_hours = [[] for i in xrange(7)]
     for date in items:
         start = items[date]['start']
         end = items[date]['end']
