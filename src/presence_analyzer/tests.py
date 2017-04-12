@@ -2,12 +2,14 @@
 """
 Presence analyzer unit tests.
 """
-import os.path
-import json
 import datetime
+import json
+import os.path
 import unittest
 
-from presence_analyzer import main, utils
+import main
+import utils
+import views
 
 
 TEST_DATA_CSV = os.path.join(
@@ -20,6 +22,7 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
     """
     Views tests.
     """
+
     def setUp(self):
         """
         Before each test, set up a environment.
@@ -54,23 +57,23 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
 
     def test_mean_time_weekday(self):
         """
-        Test correct format of output data.
+        Test mean time workhours for each day of given user.
         """
-        resp = self.client.get('/api/v1/mean_time_weekday/10')
-        self.assertEqual(resp.status_code, 200)
-
         resp = self.client.get('/api/v1/mean_time_weekday/0')
         self.assertEqual(resp.status_code, 404)
 
+        resp = self.client.get('/api/v1/mean_time_weekday/10')
+        self.assertEqual(resp.status_code, 200)
+
         data = json.loads(resp.data)
         self.assertListEqual(
-            data[0],
+            data,
             [
-                ['Mon', 29934.639175257733],
-                ['Tue', 31108.29],
-                ['Wed', 30584.429906542056],
-                ['Thu', 30602.904761904763],
-                ['Fri', 29844.545454545456],
+                ['Mon', 0],
+                ['Tue', 30047],
+                ['Wed', 24465],
+                ['Thu', 23705],
+                ['Fri', 0],
                 ['Sat', 0],
                 ['Sun', 0]
             ]
@@ -78,27 +81,71 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
 
     def test_presence_weekday_view(self):
         """
-        Test total presence time of given user.
+        Test total presence time for week of given user.
         """
-        resp = self.client.get('/api/v1/presence_weekday/10')
-        self.assertEqual(resp.status_code, 200)
-
         resp = self.client.get('/api/v1/presence_weekday/0')
         self.assertEqual(resp.status_code, 404)
 
+        resp = self.client.get('/api/v1/presence_weekday/10')
+        self.assertEqual(resp.status_code, 200)
+
         data = json.loads(resp.data)
         self.assertListEqual(
-            data[0],
+            data,
             [
                 ['Weekday', 'Presence (s)'],
-                ['Mon', 2903660],
-                ['Tue', 3110829],
-                ['Wed', 3272534],
-                ['Thu', 3213305],
-                ['Fri', 2954610],
+                ['Mon', 0],
+                ['Tue', 30047],
+                ['Wed', 24465],
+                ['Thu', 23705],
+                ['Fri', 0],
                 ['Sat', 0],
                 ['Sun', 0]
             ]
+        )
+
+    def test_presence_start_end_view(self):
+        """
+        Test average start and end hours of worktime of given user.
+        """
+        resp = self.client.get('/api/v1/presence_start_end/0')
+        self.assertEqual(resp.status_code, 404)
+
+        resp = self.client.get('/api/v1/presence_start_end/10')
+        self.assertEqual(resp.status_code, 200)
+
+        data = json.loads(resp.data)
+        self.assertDictEqual(
+            data,
+            {
+                'Wed': {
+                    'end_work': 58057,
+                    'start_work': 33592
+                },
+                'Sun': {
+                    'end_work': 0,
+                    'start_work': 0
+                },
+                'Fri': {
+                    'end_work': 0,
+                    'start_work': 0
+                },
+                'Tue': {
+                    'end_work': 64792,
+                    'start_work': 34745
+                },
+                'Mon': {
+                    'end_work': 0,
+                    'start_work': 0
+                },
+                'Thu': {
+                    'end_work': 62631,
+                    'start_work': 38926
+                },
+                'Sat': {
+                    'end_work': 0,
+                    'start_work': 0}
+            }
         )
 
 
@@ -140,17 +187,17 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         """
         data = utils.get_data()
         weekdays = utils.group_by_weekday(data[10])
-        self.assertEqual(weekdays[0][0], 30927)
+        self.assertEqual(weekdays[1][0], 30047)
 
     def test_seconds_since_midnight(self):
         """
         Test calculating correct amount of seconds since midnight.
         """
         data = utils.get_data()
-        time = data[10][datetime.date(2012, 7, 5)]['start']
+        time = data[10][datetime.date(2013, 9, 10)]['start']
         midnight = datetime.time(hour=0, minute=0, second=0)
         midday = datetime.time(hour=12, minute=0, second=0)
-        self.assertEqual(utils.seconds_since_midnight(time), 32917)
+        self.assertEqual(utils.seconds_since_midnight(time), 34745)
         self.assertEqual(utils.seconds_since_midnight(midnight), 0)
         self.assertEqual(utils.seconds_since_midnight(midday), 43200)
 
@@ -159,9 +206,9 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         Test calculate intervals in seconds between two time objects.
         """
         data = utils.get_data()
-        start = data[10][datetime.date(2012, 7, 5)]['start']
-        end = data[10][datetime.date(2012, 7, 5)]['end']
-        self.assertEqual(utils.intervals(start, end), 32907)
+        start = data[10][datetime.date(2013, 9, 10)]['start']
+        end = data[10][datetime.date(2013, 9, 10)]['end']
+        self.assertEqual(utils.interval(start, end), 30047)
 
         start = datetime.time(hour=12, minute=0, second=0)
         end = datetime.time(hour=12, minute=0, second=0)
@@ -173,10 +220,24 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         """
         data = utils.get_data()
         weekdays = utils.group_by_weekday(data[10])
-        self.assertAlmostEqual(utils.mean(weekdays[0]), 29934)
-        self.assertEqual(utils.mean(weekdays[7]), 0)
+        self.assertAlmostEqual(utils.mean(weekdays[1]), 30047)
         self.assertEqual(utils.mean([]), 0)
         self.assertEqual(utils.mean([0]), 0)
+
+    def test_work_hours(self):
+        """
+        Test calculate starts and ends hours of given user.
+        """
+        data = utils.get_data()
+        start_hours, end_hours = utils.work_hours(data[10])
+        self.assertListEqual(
+            start_hours,
+            [[], [34745], [33592], [38926], [], [], []]
+        )
+        self.assertListEqual(
+            end_hours,
+            [[], [64792], [58057], [62631], [], [], []]
+        )
 
 
 def suite():

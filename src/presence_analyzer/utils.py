@@ -4,13 +4,13 @@ Helper functions used in views.
 """
 
 import csv
-from json import dumps
-from functools import wraps
 from datetime import datetime
+from functools import wraps
+from json import dumps
 
 from flask import Response
 
-from presence_analyzer.main import app
+from main import app
 
 import logging
 log = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -75,7 +75,7 @@ def group_by_weekday(items):
     """
     Groups presence entries by weekday.
     """
-    result = [[], [], [], [], [], [], []]  # one list for every day in week
+    result = [[] for i in xrange(7)]  # one list for every day in week
     for date in items:
         start = items[date]['start']
         end = items[date]['end']
@@ -102,3 +102,17 @@ def mean(items):
     Calculates arithmetic mean. Returns zero for empty lists.
     """
     return float(sum(items)) / len(items) if len(items) > 0 else 0
+
+
+def work_hours(items):
+    """
+    Returns tuple of start and end hours.
+    """
+    start_hours = [[] for i in xrange(7)]
+    end_hours = [[] for i in xrange(7)]
+    for date in items:
+        start = items[date]['start']
+        end = items[date]['end']
+        start_hours[date.weekday()].append(seconds_since_midnight(start))
+        end_hours[date.weekday()].append(seconds_since_midnight(end))
+    return (start_hours, end_hours)
