@@ -1,22 +1,11 @@
-<!doctype html>
-<html lang=en>
-<head>
-    <meta charset=utf-8>
-    <title>Presence analyzer</title>
-    <meta name="keywords" content="" />
-    <meta name="description" content=""/>
-    <meta name="author" content="STX Next sp. z o.o."/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="/static/css/normalize.css" media="all" rel="stylesheet" type="text/css" />
-    <link href="/static/css/style.css" media="all" rel="stylesheet" type="text/css" />
+{% extends 'base.html' %}
 
-    <script src="/static/js/jquery.min.js"></script>
-    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+{% block title %}
+    <title>Presence start-end</title>
+{% endblock %}
+
+{% block head %}
     <script type="text/javascript">
-        google.load("visualization", "1", {packages:["corechart", "timeline"], 'language': 'pl'});
-    </script>
-    <script type="text/javascript" src="/static/js/scripts.js"></script>
-    <script type="text/javascript">    
         (function($) {
             $(document).ready(function(){
                 var $loading = $('#loading');
@@ -35,7 +24,7 @@
                     if(selectedUser) {
                         $loading.show();
                         $chartDiv.hide();
-                        
+
                         $.getJSON("/api/v1/presence_start_end/" + selectedUser, function(result){
                             var list = [],
                                 data = new google.visualization.DataTable({opt_version: 0.6}),
@@ -66,31 +55,8 @@
             });
         })(jQuery);
     </script>
-</head>
+{% endblock %}
 
-<body>
-    <div id="main">
-        <div id="header">
-            <h1>Presence analyzer</h1>
-            <ul>
-                <li><a href="/static/presence_weekday.html">Presence by weekday</a></li>
-                <li><a href="/static/mean_time_weekday.html">Presence mean time</a></li>
-                <li id="selected"><a href="/static/presence_start_end.html">Presence start-end</a></li>
-            </ul>
-        </div>
-        <div id="content">
-            <h2>Presence start-end weekday</h2>
-            <p>
-                <select id="user_id" style="display: none">
-                    <option value="">--</option>
-                </select>
-                <div id="chart_div" style="display: none">
-                </div>
-                <div id="loading">
-                    <img src="/static/img/loading.gif" />
-                </div>
-            </p>
-        </div>
-    </div>
-</body>
-</html>
+{% block header %}
+    <h2>Presence start-end weekday</h2>
+{% endblock %}

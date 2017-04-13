@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<html lang=en>
+    <head>
+        <meta charset=utf-8>
+        {% block title %}
+            <title>Presence analyzer</title>
+        {% endblock %}
+        <meta name="keywords" content="" />
+        <meta name="description" content=""/>
+        <meta name="author" content="STX Next sp. z o.o."/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="{{ url_for('static', filename='css/normalize.css') }}" media="all" rel="stylesheet" type="text/css" />
+        <link href="{{ url_for('static', filename='css/style.css') }}" media="all" rel="stylesheet" type="text/css" />
+        <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+        <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+        <script type="text/javascript">
+            google.load("visualization", "1", {packages:["corechart", "timeline"], 'language': 'pl'});
+        </script>
+        <script type="text/javascript" src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+        {% block head %}
+        {% endblock %}
+    </head>
+    <body>
+        <div id="main">
+            {% include "nav.html" %}
+            <div id="content">
+                {% block header %}
+                {% endblock %}
+                <p>
+                    <select id="user_id" style="display: none">
+                        <option value="">--</option>
+                    </select>
+                    <div id="chart_div" style="display: none">
+                    </div>
+                    <div id="loading">
+                        <img src="/static/img/loading.gif" />
+                    </div>
+                </p>
+            </div>
+        </div>
+    </body>
+</html>
