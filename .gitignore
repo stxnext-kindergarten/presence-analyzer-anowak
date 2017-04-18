@@ -34,3 +34,4 @@ nosetests.xml
 .project
 .pydevproject
 .cache
+.DS_Store/*

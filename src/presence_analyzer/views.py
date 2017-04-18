@@ -5,7 +5,9 @@ Defines views.
 from calendar import day_abbr
 from collections import OrderedDict
 
-from flask import abort, render_template
+from flask import abort, redirect, make_response
+from flask_mako import render_template
+from mako.exceptions import TopLevelLookupException
 
 from main import app
 from utils import (
@@ -31,31 +33,18 @@ def mainpage():
     """
     Redirects to front page.
     """
-    context = {
-        'templates': TEMPLATES,
-        'current': TEMPLATES[0][0]
-    }
-
-    return render_template(
-        TEMPLATES[0][0],
-        context=context
-    )
+    return redirect('presence_weekday.html')
 
 
-@app.route('/<template>', methods=['GET'])
+@app.route('/<string:template>', methods=['GET'])
 def serve_template(template):
     """
     Serves appropriate template by param.
     """
-    context = {
-        'templates': TEMPLATES,
-        'current': template
-    }
-
-    return render_template(
-        template,
-        context=context
-    )
+    try:
+        return render_template(template, templates=TEMPLATES, current=template)
+    except TopLevelLookupException:
+        return make_response('page not fond', 404)
 
 
 @app.route('/api/v1/users', methods=['GET'])

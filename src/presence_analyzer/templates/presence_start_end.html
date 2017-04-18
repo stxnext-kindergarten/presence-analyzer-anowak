@@ -1,10 +1,10 @@
-{% extends 'base.html' %}
+<%inherit file="base.html"/>
 
-{% block title %}
+<%block name="title">
     <title>Presence start-end</title>
-{% endblock %}
+</%block>
 
-{% block head %}
+<%block name="head">
     <script type="text/javascript">
         (function($) {
             $(document).ready(function(){
@@ -55,8 +55,8 @@
             });
         })(jQuery);
     </script>
-{% endblock %}
+</%block>
 
-{% block header %}
+<%block name="header">
     <h2>Presence start-end weekday</h2>
-{% endblock %}
+</%block>
