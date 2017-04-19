@@ -18,37 +18,45 @@
                     $loading.hide();
                 });
                 $('#user_id').change(function() {
+                    document.getElementById("error").innerHTML = "";
                     var selectedUser = $("#user_id").val(),
                         $chartDiv = $('#chart_div');
-
                     if(selectedUser) {
                         $loading.show();
                         $chartDiv.hide();
 
+                        $.getJSON("/api/v1/photo_url/" + selectedUser, function(result){
+                            document.getElementById("profile_pic").src = result;
+                        });
+
                         $.getJSON("/api/v1/presence_start_end/" + selectedUser, function(result){
-                            var list = [],
-                                data = new google.visualization.DataTable({opt_version: 0.6}),
-                                options = {hAxis: {title: 'Weekday'}},
-                                chart = new google.visualization.Timeline($chartDiv[0]),
-                                formatter = new google.visualization.DateFormat({pattern: 'HH:mm:ss'});
+                            if (Object.keys(result).length > 0){
+                                var list = [],
+                                    data = new google.visualization.DataTable({opt_version: 0.6}),
+                                    options = {hAxis: {title: 'Weekday'}},
+                                    chart = new google.visualization.Timeline($chartDiv[0]),
+                                    formatter = new google.visualization.DateFormat({pattern: 'HH:mm:ss'});
+                                $.each(result, function(index, value){
+                                    if (value['start_work'] !== 0) {
+                                        value['start_work'] = parseInterval(value['start_work']);
+                                        value['end_work'] = parseInterval(value['end_work']);
+                                        list.push([index, value['start_work'], value['end_work']]);
+                                    }
+                                });
+                                data.addColumn('string', 'Weekday');
+                                data.addColumn({type: 'datetime', id: 'Start'});
+                                data.addColumn({type: 'datetime', id: 'End'});
+                                data.addRows(list);
+                                formatter.format(data, 1);
+                                formatter.format(data, 2);
 
-                            $.each(result, function(index, value){
-                                if (value['start_work'] !== 0) {
-                                    value['start_work'] = parseInterval(value['start_work']);
-                                    value['end_work'] = parseInterval(value['end_work']);
-                                    list.push([index, value['start_work'], value['end_work']]);
-                                }
-                            });
-                            data.addColumn('string', 'Weekday');
-                            data.addColumn({type: 'datetime', id: 'Start'});
-                            data.addColumn({type: 'datetime', id: 'End'});
-                            data.addRows(list);
-                            formatter.format(data, 1);
-                            formatter.format(data, 2);
-
-                            $chartDiv.show();
-                            $loading.hide();
-                            chart.draw(data, options);
+                                $chartDiv.show();
+                                $loading.hide();
+                                chart.draw(data, options);
+                            } else {
+                                $loading.hide();
+                                document.getElementById("error").innerHTML = "No data provided.";
+                            }
                         });
                     }
                 });

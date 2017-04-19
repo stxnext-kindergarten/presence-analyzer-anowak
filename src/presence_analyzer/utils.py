@@ -4,9 +4,11 @@ Helper functions used in views.
 """
 
 import csv
+
 from datetime import datetime
 from functools import wraps
 from json import dumps
+from xml.etree import ElementTree
 
 from flask import Response
 
@@ -34,6 +36,46 @@ def jsonify(function):
 
 def get_data():
     """
+    Extracts data from XML file, tries to match user_id from
+    CSV file and binds it.
+
+    It creates structure like this:
+    user_id = {
+        'name': 'Jan K.',
+        'presence': {
+            datetime.date(2013, 10, 1): {
+                'start': datetime.time(9, 0, 0),
+                'end': datetime.time(17, 30, 0),
+            },
+            datetime.date(2013, 10, 2): {
+                'start': datetime.time(8, 30, 0),
+                'end': datetime.time(16, 45, 0),
+            }
+        }
+    }
+    """
+    data = {}
+    csv_data = get_data_from_csv()
+    tree = ElementTree.parse(app.config['DATA_XML'])
+    children = tree.getroot().getchildren()
+    users = filter(lambda x: x.tag == 'users', children)
+    if not len(users):
+        raise KeyError('No users data in XML file.')
+
+    for user in users[0]:
+        user_id = int(user.attrib['id'])
+        name = user.find('name').text
+        try:
+            presence = csv_data[user_id]
+        except KeyError:
+            presence = []
+        data.setdefault(user_id, {})['name'] = name
+        data.setdefault(user_id, {})['presence'] = presence
+    return data
+
+
+def get_data_from_csv():
+    """
     Extracts presence data from CSV file and groups it by user_id.
 
     It creates structure like this:
@@ -57,7 +99,6 @@ def get_data():
             if len(row) != 4:
                 # ignore header and footer lines
                 continue
-
             try:
                 user_id = int(row[0])
                 date = datetime.strptime(row[1], '%Y-%m-%d').date()
@@ -67,8 +108,24 @@ def get_data():
                 log.debug('Problem with line %d: ', i, exc_info=True)
 
             data.setdefault(user_id, {})[date] = {'start': start, 'end': end}
-
     return data
+
+
+def get_server_config():
+    """
+    Extracts server config from XML file.
+    """
+    tree = ElementTree.parse(app.config['DATA_XML'])
+    children = tree.getroot().getchildren()
+    config = filter(lambda x: x.tag == 'server', children)
+    if not len(config):
+        raise KeyError('No server info in XML file.')
+
+    return {
+        'host': config[0].find('host').text,
+        'port': config[0].find('port').text,
+        'protocol': config[0].find('protocol').text
+    }
 
 
 def group_by_weekday(items):
