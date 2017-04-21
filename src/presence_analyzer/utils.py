@@ -8,6 +8,8 @@ import csv
 from datetime import datetime
 from functools import wraps
 from json import dumps
+from threading import Lock
+from time import time
 from xml.etree import ElementTree
 
 from flask import Response
@@ -16,6 +18,9 @@ from main import app
 
 import logging
 log = logging.getLogger(__name__)  # pylint: disable=invalid-name
+
+CACHE = {}
+lock = Lock()
 
 
 def jsonify(function):
@@ -34,22 +39,59 @@ def jsonify(function):
     return inner
 
 
+def cache(period):
+    """
+    Caching decorator. Refreshes cached data if time expired.
+
+    Cache dict structure:
+    CACHE = {
+        function.__name__: {
+            'last_caching':  1493018167.846858
+            'data': function(*args, **kwargs)
+        },
+    }
+    """
+    def decorating_wrapper(function):
+        def caching_wrapper(*args, **kwargs):
+            global CACHE
+            func_name = function.__name__
+            try:
+                if (time() - CACHE[func_name]['last_caching']) > period:
+                    CACHE[func_name] = {
+                        'data': function(*args, **kwargs),
+                        'last_caching': time()
+                    }
+            except KeyError:
+                with lock:
+                    CACHE.setdefault(func_name, {})['data'] = function(
+                        *args,
+                        **kwargs
+                    )
+                    CACHE.setdefault(func_name, {})['last_caching'] = time()
+            return CACHE[func_name]['data']
+        return caching_wrapper
+    return decorating_wrapper
+
+
+@cache(600)
 def get_data():
     """
     Extracts data from XML file, tries to match user_id from
     CSV file and binds it.
 
     It creates structure like this:
-    user_id = {
-        'name': 'Jan K.',
-        'presence': {
-            datetime.date(2013, 10, 1): {
-                'start': datetime.time(9, 0, 0),
-                'end': datetime.time(17, 30, 0),
-            },
-            datetime.date(2013, 10, 2): {
-                'start': datetime.time(8, 30, 0),
-                'end': datetime.time(16, 45, 0),
+    data = {
+        user_id = {
+            'name': 'Jan K.',
+            'presence': {
+                datetime.date(2013, 10, 1): {
+                    'start': datetime.time(9, 0, 0),
+                    'end': datetime.time(17, 30, 0),
+                },
+                datetime.date(2013, 10, 2): {
+                    'start': datetime.time(8, 30, 0),
+                    'end': datetime.time(16, 45, 0),
+                }
             }
         }
     }
@@ -74,6 +116,7 @@ def get_data():
     return data
 
 
+@cache(600)
 def get_data_from_csv():
     """
     Extracts presence data from CSV file and groups it by user_id.
