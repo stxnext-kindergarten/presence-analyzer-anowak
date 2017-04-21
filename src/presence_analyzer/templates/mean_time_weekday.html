@@ -8,40 +8,50 @@
     <script type="text/javascript">
         (function($) {
             $(document).ready(function(){
-                var loading = $('#loading');
+                var $loading = $('#loading');
                 $.getJSON("/api/v1/users", function(result) {
                     var dropdown = $("#user_id");
                     $.each(result, function(item) {
                         dropdown.append($("<option />").val(this.user_id).text(this.name));
                     });
                     dropdown.show();
-                    loading.hide();
+                    $loading.hide();
                 });
                 $('#user_id').change(function() {
+                    document.getElementById("error").innerHTML = "";
                     var selectedUser = $("#user_id").val(),
                         $chartDiv = $('#chart_div');
-
                     if(selectedUser) {
-                        loading.show();
+                        $loading.show();
                         $chartDiv.hide();
-                        $.getJSON("/api/v1/mean_time_weekday/" + selectedUser, function(result) {
-                            var data = new google.visualization.DataTable(),
-                                chart = new google.visualization.ColumnChart($chartDiv[0]),
-                                formatter = new google.visualization.DateFormat({pattern: 'HH:mm:ss'}),
-                                options = {
-                                    hAxis: {title: 'Weekday'}
-                                };
-                            $.each(result, function(index, value) {
-                                value[1] = parseInterval(value[1]);
-                            });
-                            data.addColumn('string', 'Weekday');
-                            data.addColumn('datetime', 'Mean time (h:m:s)');
-                            data.addRows(result);
-                            formatter.format(data, 1);
 
-                            $chartDiv.show();
-                            loading.hide();
-                            chart.draw(data, options);
+                        $.getJSON("/api/v1/photo_url/" + selectedUser, function(result){
+                            document.getElementById("profile_pic").src = result;
+                        });
+
+                        $.getJSON("/api/v1/mean_time_weekday/" + selectedUser, function(result) {
+                            if (result.length > 0){
+                                var data = new google.visualization.DataTable(),
+                                    chart = new google.visualization.ColumnChart($chartDiv[0]),
+                                    formatter = new google.visualization.DateFormat({pattern: 'HH:mm:ss'}),
+                                    options = {
+                                        hAxis: {title: 'Weekday'}
+                                    };
+                                $.each(result, function(index, value) {
+                                    value[1] = parseInterval(value[1]);
+                                });
+                                data.addColumn('string', 'Weekday');
+                                data.addColumn('datetime', 'Mean time (h:m:s)');
+                                data.addRows(result);
+                                formatter.format(data, 1);
+
+                                $chartDiv.show();
+                                $loading.hide();
+                                chart.draw(data, options);
+                            } else {
+                                $loading.hide();
+                                document.getElementById("error").innerHTML = "No data provided.";
+                            }
                         });
                     }
                 });

@@ -15,6 +15,9 @@ import views
 TEST_DATA_CSV = os.path.join(
     os.path.dirname(__file__), '..', '..', 'runtime', 'data', 'test_data.csv'
 )
+TEST_DATA_XML = os.path.join(
+    os.path.dirname(__file__), '..', '..', 'runtime', 'data', 'test_users.xml'
+)
 
 
 # pylint: disable=maybe-no-member, too-many-public-methods
@@ -27,7 +30,12 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
         """
         Before each test, set up a environment.
         """
-        main.app.config.update({'DATA_CSV': TEST_DATA_CSV})
+        main.app.config.update(
+            {
+                'DATA_CSV': TEST_DATA_CSV,
+                'DATA_XML': TEST_DATA_XML
+            }
+        )
         self.client = main.app.test_client()
 
     def tearDown(self):
@@ -52,8 +60,7 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.content_type, 'application/json')
         data = json.loads(resp.data)
-        self.assertEqual(len(data), 2)
-        self.assertDictEqual(data[0], {u'user_id': 10, u'name': u'User 10'})
+        self.assertDictEqual(data[0], {'user_id': 10, 'name': 'Adam P.'})
 
     def test_mean_time_weekday(self):
         """
@@ -158,7 +165,12 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         """
         Before each test, set up a environment.
         """
-        main.app.config.update({'DATA_CSV': TEST_DATA_CSV})
+        main.app.config.update(
+            {
+                'DATA_CSV': TEST_DATA_CSV,
+                'DATA_XML': TEST_DATA_XML
+            }
+        )
 
     def tearDown(self):
         """
@@ -174,10 +186,13 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         self.assertIsInstance(data, dict)
         self.assertItemsEqual(data.keys(), [10, 11])
         sample_date = datetime.date(2013, 9, 10)
-        self.assertIn(sample_date, data[10])
-        self.assertItemsEqual(data[10][sample_date].keys(), ['start', 'end'])
+        self.assertIn(sample_date, data[10]['presence'])
+        self.assertItemsEqual(
+            data[10]['presence'][sample_date].keys(),
+            ['start', 'end']
+        )
         self.assertEqual(
-            data[10][sample_date]['start'],
+            data[10]['presence'][sample_date]['start'],
             datetime.time(9, 39, 5)
         )
 
@@ -186,7 +201,7 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         Test grouping dates by weekdays.
         """
         data = utils.get_data()
-        weekdays = utils.group_by_weekday(data[10])
+        weekdays = utils.group_by_weekday(data[10]['presence'])
         self.assertEqual(weekdays[1][0], 30047)
 
     def test_seconds_since_midnight(self):
@@ -194,7 +209,7 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         Test calculating correct amount of seconds since midnight.
         """
         data = utils.get_data()
-        time = data[10][datetime.date(2013, 9, 10)]['start']
+        time = data[10]['presence'][datetime.date(2013, 9, 10)]['start']
         midnight = datetime.time(hour=0, minute=0, second=0)
         midday = datetime.time(hour=12, minute=0, second=0)
         self.assertEqual(utils.seconds_since_midnight(time), 34745)
@@ -206,8 +221,8 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         Test calculate intervals in seconds between two time objects.
         """
         data = utils.get_data()
-        start = data[10][datetime.date(2013, 9, 10)]['start']
-        end = data[10][datetime.date(2013, 9, 10)]['end']
+        start = data[10]['presence'][datetime.date(2013, 9, 10)]['start']
+        end = data[10]['presence'][datetime.date(2013, 9, 10)]['end']
         self.assertEqual(utils.interval(start, end), 30047)
 
         start = datetime.time(hour=12, minute=0, second=0)
@@ -219,7 +234,7 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         Test calculating arithmetic mean.
         """
         data = utils.get_data()
-        weekdays = utils.group_by_weekday(data[10])
+        weekdays = utils.group_by_weekday(data[10]['presence'])
         self.assertAlmostEqual(utils.mean(weekdays[1]), 30047)
         self.assertEqual(utils.mean([]), 0)
         self.assertEqual(utils.mean([0]), 0)
@@ -229,7 +244,7 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         Test calculate starts and ends hours of given user.
         """
         data = utils.get_data()
-        start_hours, end_hours = utils.work_hours(data[10])
+        start_hours, end_hours = utils.work_hours(data[10]['presence'])
         self.assertListEqual(
             start_hours,
             [[], [34745], [33592], [38926], [], [], []]

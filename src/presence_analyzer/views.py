@@ -12,6 +12,7 @@ from mako.exceptions import TopLevelLookupException
 from main import app
 from utils import (
     get_data,
+    get_server_config,
     group_by_weekday,
     jsonify,
     mean,
@@ -47,6 +48,20 @@ def serve_template(template):
         return make_response('page not fond', 404)
 
 
+@app.route('/api/v1/photo_url/<int:user_id>', methods=['GET'])
+@jsonify
+def prepare_photo_url(user_id):
+    """
+    Returns url for intranet api in order to get photo of given user.
+    """
+    conf = get_server_config()
+    return '{}://{}/api/images/users/{}'.format(
+        conf['protocol'],
+        conf['host'],
+        str(user_id)
+    )
+
+
 @app.route('/api/v1/users', methods=['GET'])
 @jsonify
 def users_view():
@@ -55,7 +70,7 @@ def users_view():
     """
     data = get_data()
     return [
-        {'user_id': i, 'name': 'User {0}'.format(str(i))}
+        {'user_id': i, 'name': data[i]['name']}
         for i in data.keys()
     ]
 
@@ -71,12 +86,14 @@ def mean_time_weekday_view(user_id):
         log.debug('User %s not found!', user_id)
         abort(404)
 
-    weekdays = group_by_weekday(data[user_id])
+    if not len(data[user_id]['presence']):
+        return []
+
+    weekdays = group_by_weekday(data[user_id]['presence'])
     result = [
         (day_abbr[weekday], mean(intervals))
         for weekday, intervals in enumerate(weekdays)
     ]
-
     return result
 
 
@@ -91,7 +108,10 @@ def presence_weekday_view(user_id):
         log.debug('User %s not found!', user_id)
         abort(404)
 
-    weekdays = group_by_weekday(data[user_id])
+    if not len(data[user_id]['presence']):
+        return []
+
+    weekdays = group_by_weekday(data[user_id]['presence'])
     result = [
         (day_abbr[weekday], sum(intervals))
         for weekday, intervals in enumerate(weekdays)
@@ -112,7 +132,10 @@ def presence_start_end_view(user_id):
         log.debug('User %s not found!', user_id)
         abort(404)
 
-    start_times, end_times = work_hours(data[user_id])
+    if not len(data[user_id]['presence']):
+        return {}
+
+    start_times, end_times = work_hours(data[user_id]['presence'])
 
     work_days = OrderedDict()
     for i in xrange(7):  # 7 days a week
