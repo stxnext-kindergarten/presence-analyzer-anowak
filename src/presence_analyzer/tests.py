@@ -178,10 +178,25 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         """
         pass
 
-    def test_get_data(self):
+    def test_get_data_from_csv(self):
         """
-        Test parsing of CSV file.
+        Test parsing CSV file.
         """
+        data = utils.get_data_from_csv()
+        self.assertIsInstance(data, dict)
+        self.assertItemsEqual(data.keys(), [10, 11])
+        sample_date = datetime.date(2013, 9, 10)
+        self.assertIn(sample_date, data[10])
+        self.assertItemsEqual(
+            data[10][sample_date].keys(),
+            ['start', 'end']
+        )
+        self.assertEqual(
+            data[10][sample_date]['start'],
+            datetime.time(9, 39, 5)
+        )
+
+    def get_data(self):
         data = utils.get_data()
         self.assertIsInstance(data, dict)
         self.assertItemsEqual(data.keys(), [10, 11])
@@ -194,6 +209,10 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         self.assertEqual(
             data[10]['presence'][sample_date]['start'],
             datetime.time(9, 39, 5)
+        )
+        self.assertEqual(
+            data[10]['name'],
+            'Adam P.'
         )
 
     def test_group_by_weekday(self):
@@ -253,6 +272,27 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
             end_hours,
             [[], [64792], [58057], [62631], [], [], []]
         )
+
+    def test_cache(self):
+        """
+        Test caching data in memory for given time.
+        """
+        utils.CACHE.clear()
+        data1 = utils.get_data_from_csv()
+        self.assertDictEqual(
+            data1,
+            utils.CACHE['get_data_from_csv']['data']
+        )
+        data2 = utils.get_data()
+        self.assertDictEqual(
+            data1,
+            utils.CACHE['get_data_from_csv']['data']
+        )
+        self.assertDictEqual(
+            data2,
+            utils.CACHE['get_data']['data']
+        )
+        utils.CACHE.clear()
 
 
 def suite():
