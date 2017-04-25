@@ -155,6 +155,65 @@ class PresenceAnalyzerViewsTestCase(unittest.TestCase):
             }
         )
 
+    def test_prepare_photo_url(self):
+        """
+        Test preparing correct url for given user_id.
+        """
+        resp = self.client.get('/api/v1/photo_url/abc')
+        self.assertEqual(resp.status_code, 404)
+
+        resp = self.client.get('/api/v1/photo_url/10')
+        self.assertEqual(resp.status_code, 200)
+
+        data = json.loads(resp.data)
+        self.assertEqual(
+            data,
+            'https://intranet.stxnext.pl/api/images/users/10'
+        )
+
+    def test_api_months_view(self):
+        """
+        Test months listing.
+        """
+        resp = self.client.get('/api/v1/months')
+        self.assertEqual(resp.status_code, 200)
+
+        self.assertEqual(resp.content_type, 'application/json')
+        data = json.loads(resp.data)
+        self.assertEqual(data[0], 'September-2013')
+
+    def test_top_5(self):
+        """
+        Test top 5 emplyees of certein month.
+        """
+        resp = self.client.get('/api/v1/top_5/Sep-2013')
+        self.assertEqual(resp.status_code, 404)
+
+        resp = self.client.get('/api/v1/top_5/September-9999')
+        self.assertEqual(resp.status_code, 404)
+
+        resp = self.client.get('/api/v1/top_5/September-1')
+        self.assertEqual(resp.status_code, 404)
+
+        resp = self.client.get('/api/v1/top_5/September2013')
+        self.assertEqual(resp.status_code, 404)
+
+        resp = self.client.get('/api/v1/top_5/September-2013')
+        self.assertEqual(resp.status_code, 200)
+
+        data = json.loads(resp.data)
+        self.assertEqual(
+            data[0],
+            [
+                11,
+                {
+                    'total_hours': 32.89,
+                    'image': 'https://intranet.stxnext.pl/api/images/users/11',
+                    'name': 'Adrian K.'
+                }
+            ]
+        )
+
 
 class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
     """
@@ -278,21 +337,28 @@ class PresenceAnalyzerUtilsTestCase(unittest.TestCase):
         Test caching data in memory for given time.
         """
         utils.CACHE.clear()
-        data1 = utils.get_data_from_csv()
+        data1 = utils.get_data()
         self.assertDictEqual(
             data1,
-            utils.CACHE['get_data_from_csv']['data']
-        )
-        data2 = utils.get_data()
-        self.assertDictEqual(
-            data1,
-            utils.CACHE['get_data_from_csv']['data']
-        )
-        self.assertDictEqual(
-            data2,
             utils.CACHE['get_data']['data']
         )
+        data2 = utils.get_dates()
+        self.assertEqual(
+            data2,
+            utils.CACHE['get_dates']['data']
+        )
+        self.assertEqual(len(utils.CACHE.keys()), 2)
         utils.CACHE.clear()
+
+    def test_total_hours(self):
+        """
+        Test total workhours of certein month-year by given user.
+        """
+        data = utils.get_data()
+        hours = utils.total_hours(data[10]['presence'], 'September', '2013')
+        self.assertEqual(hours, 21.73)
+        hours = utils.total_hours(data[11]['presence'], 'September', '2013')
+        self.assertEqual(hours, 32.89)
 
 
 def suite():

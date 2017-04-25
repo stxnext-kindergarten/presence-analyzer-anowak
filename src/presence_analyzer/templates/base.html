@@ -16,7 +16,7 @@
         <script src="${ url_for('static', filename='js/jquery.min.js') }"></script>
         <script type="text/javascript" src="https://www.google.com/jsapi"></script>
         <script type="text/javascript">
-            google.load("visualization", "1", {packages:["corechart", "timeline"], 'language': 'pl'});
+            google.load("visualization", "1", {packages:["corechart", "timeline", "table"], 'language': 'pl'});
         </script>
         <script type="text/javascript" src="${ url_for('static', filename='js/scripts.js') }"></script>
         <%block name="head"/>
@@ -30,7 +30,7 @@
             <div id="content">
                 <%block name="header"/>
                 <p>
-                    <select id="user_id" style="display: none">
+                    <select id="object_id" style="display: none">
                         <option value="">--</option>
                     </select>
                     <img id="profile_pic"/>

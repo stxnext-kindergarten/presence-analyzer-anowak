@@ -9,26 +9,31 @@
         google.load("visualization", "1", {packages:["corechart"], 'language': 'en'});
 
         (function($) {
-            $(document).ready(function(){
-                var loading = $('#loading');
+            $(function() {
+                var loading = $('#loading'),
+                    $dropdown = $('#object_id'),
+                    $profile_pic = $('#profile_pic');
                 $.getJSON("/api/v1/users", function(result) {
-                    var dropdown = $("#user_id");
                     $.each(result, function(item) {
-                        dropdown.append($("<option />").val(this.user_id).text(this.name));
+                        $dropdown.append($('<option />', {
+                            value: this.user_id,
+                            text: this.name
+                        }));
                     });
-                    dropdown.show();
+                    $dropdown.show();
                     loading.hide();
                 });
-                $('#user_id').change(function(){
+                $('#object_id').change(function() {
                     document.getElementById("error").innerHTML = "";
-                    var selectedUser = $("#user_id").val(),
+                    var selectedUser = $('#object_id').val(),
                         $chartDiv = $('#chart_div');
-                    if(selectedUser) {
+                    if (selectedUser) {
                         loading.show();
                         $chartDiv.hide();
 
-                        $.getJSON("/api/v1/photo_url/" + selectedUser, function(result){
-                            document.getElementById("profile_pic").src = result;
+                        $.getJSON("/api/v1/photo_url/" + selectedUser, function(result) {
+                            $profile_pic.show();
+                            $profile_pic.attr('src', result);
                         });
 
                         $.getJSON("/api/v1/presence_weekday/" + selectedUser, function(result) {
@@ -44,6 +49,9 @@
                                 document.getElementById("error").innerHTML = "No data provided.";
                             }
                         });
+                    } else {
+                        $chartDiv.hide();
+                        $profile_pic.hide();
                     }
                 });
             });
