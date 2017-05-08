@@ -170,15 +170,15 @@ def get_dates():
             try:
                 date = datetime.strptime(row[1], '%Y-%m-%d').date()
                 value = '{}-{}'.format(
-                    calendar.month_name[date.month],
-                    date.year
+                    date.year,
+                    calendar.month_name[date.month]
                 )
             except (ValueError, TypeError):
                 log.debug('Problem with line %d: ', i, exc_info=True)
 
             if value not in months:
                 months.append(value)
-    return months
+    return list(reversed(months))
 
 
 def get_server_config():

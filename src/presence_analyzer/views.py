@@ -94,7 +94,7 @@ def top_5(month_year):
     Returns top 5 employees of given month.
     """
     try:
-        month, year = month_year.split('-')
+        year, month = month_year.split('-')
     except (IndexError, ValueError):
         log.debug('%s is not a correct format!', month_year)
         abort(404)
