@@ -1,0 +1,78 @@
+<%inherit file="base.html"/>
+
+<%block name="title">
+    <title>Presence start-end</title>
+</%block>
+
+<%block name="head">
+    <script type="text/javascript">
+        (function($) {
+            $(function() {
+                var $loading = $('#loading'),
+                    $dropdown = $('#object_id'),
+                    $profile_pic = $('#profile_pic');
+                $.getJSON("/api/v1/users", function(result) {
+                    $.each(result, function(item) {
+                        $dropdown.append($('<option />', {
+                            value: this.user_id,
+                            text: this.name
+                        }));
+                    });
+                    $dropdown.show();
+                    $loading.hide();
+                });
+                $('#object_id').change(function() {
+                    document.getElementById("error").innerHTML = "";
+                    var selectedUser = $('#object_id').val(),
+                        $chartDiv = $('#chart_div');
+                    if (selectedUser) {
+                        $loading.show();
+                        $chartDiv.hide();
+
+                        $.getJSON("/api/v1/photo_url/" + selectedUser, function(result) {
+                            $profile_pic.show();
+                            $profile_pic.attr('src', result);
+                        });
+
+                        $.getJSON("/api/v1/presence_start_end/" + selectedUser, function(result) {
+                            if (Object.keys(result).length > 0){
+                                var list = [],
+                                    data = new google.visualization.DataTable({opt_version: 0.6}),
+                                    options = {hAxis: {title: 'Weekday'}},
+                                    chart = new google.visualization.Timeline($chartDiv[0]),
+                                    formatter = new google.visualization.DateFormat({pattern: 'HH:mm:ss'});
+                                $.each(result, function(index, value) {
+                                    if (value['start_work'] !== 0) {
+                                        value['start_work'] = parseInterval(value['start_work']);
+                                        value['end_work'] = parseInterval(value['end_work']);
+                                        list.push([index, value['start_work'], value['end_work']]);
+                                    }
+                                });
+                                data.addColumn('string', 'Weekday');
+                                data.addColumn({type: 'datetime', id: 'Start'});
+                                data.addColumn({type: 'datetime', id: 'End'});
+                                data.addRows(list);
+                                formatter.format(data, 1);
+                                formatter.format(data, 2);
+
+                                $chartDiv.show();
+                                $loading.hide();
+                                chart.draw(data, options);
+                            } else {
+                                $loading.hide();
+                                document.getElementById("error").innerHTML = "No data provided.";
+                            }
+                        });
+                    } else {
+                        $chartDiv.hide();
+                        $profile_pic.hide();
+                    }
+                });
+            });
+        })(jQuery);
+    </script>
+</%block>
+
+<%block name="header">
+    <h2>Presence start-end weekday</h2>
+</%block>

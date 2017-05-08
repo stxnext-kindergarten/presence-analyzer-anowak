@@ -1,0 +1,9 @@
+<ul>
+    % for link, name in context['templates']:
+        <li id="${ 'selected' if link == context['current'] else '' }">
+            <a href="${ url_for('serve_template', template=link) }">
+                ${ name }
+            </a>
+        </li>
+    % endfor
+</ul>
