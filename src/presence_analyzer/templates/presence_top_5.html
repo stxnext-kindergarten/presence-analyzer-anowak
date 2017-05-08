@@ -1,0 +1,65 @@
+<%inherit file="base.html"/>
+
+<%block name="title">
+    <title>TOP 5</title>
+</%block>
+
+<%block name="head">
+    <script type="text/javascript">
+        (function($) {
+            $(function() {
+                var $loading = $('#loading'),
+                    $dropdown = $('#object_id');
+                $.getJSON("/api/v1/months", function(result) {
+                    $.each(result, function(item) {
+                        $dropdown.append($('<option />', {
+                            value: result[item],
+                            text: result[item]
+                        }));
+                    });
+                    $dropdown.show();
+                    $loading.hide();
+                });
+                $('#object_id').change(function() {
+                    var selectedMonth = $('#object_id').val(),
+                        $chartDiv = $('#chart_div');
+                    if (selectedMonth) {
+                        $dropdown.prop('disabled', true);
+                        $loading.show();
+                        $chartDiv.hide();
+                        $.getJSON("/api/v1/top_5/" + selectedMonth, function(result) {
+                            var data = new google.visualization.DataTable(),
+                                options = {showRowNumber: true, width: '100%', height: '100%', allowHtml: true},
+                                container = document.getElementById("chart_div"),
+                                table = new google.visualization.Table(container),
+                                list = [];
+                            $.each(result, function(index, value) {
+                                list.push([
+                                    value[1]['name'],
+                                    $('<img />', {src: value[1]['image']})[0].outerHTML,
+                                    value[1]['total_hours']
+                                ]);
+                            });
+                            data.addColumn('string', 'Name');
+                            data.addColumn('string', 'Image');
+                            data.addColumn('number', 'Hours in work');
+                            data.addRows(list);
+                            $chartDiv.show();
+                            $loading.hide();
+                            table.draw(data, options);
+                        })
+                        .done(function(){
+                            $dropdown.prop('disabled', false);
+                        });
+                    } else {
+                        $chartDiv.hide();
+                    }
+                });
+            });
+        })(jQuery);
+    </script>
+</%block>
+
+<%block name="header">
+    <h2>TOP 5</h2>
+</%block>

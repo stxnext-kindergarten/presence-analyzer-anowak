@@ -2,20 +2,22 @@
 """
 Defines views.
 """
-from calendar import day_abbr
+from calendar import day_abbr, month_name
 from collections import OrderedDict
 
-from flask import abort, redirect, make_response
+from flask import abort, make_response, redirect
 from flask_mako import render_template
 from mako.exceptions import TopLevelLookupException
 
 from main import app
 from utils import (
     get_data,
+    get_dates,
     get_server_config,
     group_by_weekday,
     jsonify,
     mean,
+    total_hours,
     work_hours
 )
 
@@ -25,7 +27,8 @@ log = logging.getLogger(__name__)  # pylint: disable=invalid-name
 TEMPLATES = [
     ('presence_weekday.html', 'Presence weekday'),
     ('mean_time_weekday.html', 'Mean time weekday'),
-    ('presence_start_end.html', 'Presence start-end')
+    ('presence_start_end.html', 'Presence start-end'),
+    ('presence_top_5.html', 'Top 5')
 ]
 
 
@@ -58,7 +61,7 @@ def prepare_photo_url(user_id):
     return '{}://{}/api/images/users/{}'.format(
         conf['protocol'],
         conf['host'],
-        str(user_id)
+        user_id
     )
 
 
@@ -73,6 +76,56 @@ def users_view():
         {'user_id': i, 'name': data[i]['name']}
         for i in data.keys()
     ]
+
+
+@app.route('/api/v1/months', methods=['GET'])
+@jsonify
+def months_view():
+    """
+    Years/months listing for dropdown.
+    """
+    return get_dates()
+
+
+@app.route('/api/v1/top_5/<string:month_year>', methods=['GET'])
+@jsonify
+def top_5(month_year):
+    """
+    Returns top 5 employees of given month.
+    """
+    try:
+        month, year = month_year.split('-')
+    except (IndexError, ValueError):
+        log.debug('%s is not a correct format!', month_year)
+        abort(404)
+
+    if len(year) < 4 or not year.isdigit() or month not in month_name:
+        log.debug('%s is not a correct format!', month_year)
+        abort(404)
+
+    data = get_data()
+    top_presence = OrderedDict()
+    top_presence = {
+        user: {
+            'total_hours': total_hours(data[user]['presence'], month, year),
+            'image': prepare_photo_url(user).data[1:-1],
+            'name': data[user]['name']
+        }
+        for user in data
+    }
+
+    top5 = list(OrderedDict(
+        sorted(
+            top_presence.items(),
+            key=lambda x: x[1]['total_hours'],
+            reverse=True
+        )
+    ).items())[:5]
+
+    if not top5[0][1]['total_hours']:
+        log.debug('No data for year %s', year)
+        abort(404)
+    return top5
 
 
 @app.route('/api/v1/mean_time_weekday/<int:user_id>', methods=['GET'])

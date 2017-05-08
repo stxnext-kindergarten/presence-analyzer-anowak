@@ -41,7 +41,7 @@ body {
     background: #EEE;
     padding: 0.24em 1em;
     color: #00C;
-    width: 12em;
+    width: 10em;
     text-align: center;
 }
 
@@ -59,4 +59,8 @@ body {
     background: #FFF;
     color: #000;
     font-weight: bold;
+}
+
+.google-visualization-table-table {
+    text-align: center !important;
 }

@@ -2,7 +2,9 @@
 """
 Helper functions used in views.
 """
+from __future__ import division
 
+import calendar
 import csv
 
 from datetime import datetime
@@ -20,7 +22,7 @@ import logging
 log = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 CACHE = {}
-lock = Lock()
+LOCK = Lock()
 
 
 def jsonify(function):
@@ -62,7 +64,7 @@ def cache(period):
                         'last_caching': time()
                     }
             except KeyError:
-                with lock:
+                with LOCK:
                     CACHE.setdefault(func_name, {})['data'] = function(
                         *args,
                         **kwargs
@@ -116,7 +118,6 @@ def get_data():
     return data
 
 
-@cache(600)
 def get_data_from_csv():
     """
     Extracts presence data from CSV file and groups it by user_id.
@@ -152,6 +153,32 @@ def get_data_from_csv():
 
             data.setdefault(user_id, {})[date] = {'start': start, 'end': end}
     return data
+
+
+@cache(600)
+def get_dates():
+    """
+    Extracts months and years from CSV for dropdown menu.
+    """
+    months = []
+    with open(app.config['DATA_CSV'], 'r') as csvfile:
+        presence_reader = csv.reader(csvfile, delimiter=',')
+        for i, row in enumerate(presence_reader):
+            if len(row) != 4:
+                # ignore header and footer lines
+                continue
+            try:
+                date = datetime.strptime(row[1], '%Y-%m-%d').date()
+                value = '{}-{}'.format(
+                    calendar.month_name[date.month],
+                    date.year
+                )
+            except (ValueError, TypeError):
+                log.debug('Problem with line %d: ', i, exc_info=True)
+
+            if value not in months:
+                months.append(value)
+    return months
 
 
 def get_server_config():
@@ -216,3 +243,18 @@ def work_hours(items):
         start_hours[date.weekday()].append(seconds_since_midnight(start))
         end_hours[date.weekday()].append(seconds_since_midnight(end))
     return (start_hours, end_hours)
+
+
+def total_hours(items, month, year):
+    """
+    Returns total working hours.
+    """
+    if not items:
+        return 0
+
+    year = int(year)
+    seconds = 0
+    for date in items:
+        if calendar.month_name[date.month] == month and date.year == year:
+            seconds += interval(items[date]['start'], items[date]['end'])
+    return round(seconds / 3600, 2)
